@@ -34,6 +34,15 @@ All extracted data rows are normalized into the following target schema:
 
 ---
 
+## OCR Best Practices & Image Quality
+
+For optimal OCR text extraction and table alignment, **document quality is critical**.
+
+* **Recommended:** Use a flatbed scanner or a high-quality office printer. Scanners ensure uniform lighting, perfect flatness, and no perspective distortion, leading to nearly 100% extraction accuracy.
+* **Mobile Scanning:** If scanning via a mobile device, **avoid taking raw photos** with the default camera app. Raw photos suffer from shadows, blur, and perspective distortion which severely degrades Tesseract OCR's accuracy. Instead, use dedicated scanning applications (e.g., **Microsoft Lens**, **Adobe Scan**, **CamScanner**) to automatically crop, deskew, and enhance contrast before saving as a PDF or high-quality image.
+
+---
+
 ## Repository Structure
 
 ```text

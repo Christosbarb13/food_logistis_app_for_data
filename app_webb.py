@@ -7,7 +7,7 @@ from PIL import Image
 import pytesseract as ps
 import dokimi_app
 import fitz  # PyMuPDF για PDF επεξεργασία
-
+import re
 # Ρύθμιση Tesseract CMD
 ps.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -36,6 +36,7 @@ with tabs[0]:
 with tabs[1]:
     st.header("Αναγνώριση Παραστατικού (JPG, PNG, WEBP, PDF)")
     st.write("Ανεβάστε μια εικόνα (JPG/PNG/WEBP) ή αρχείο **PDF** παραστατικού για να εξαχθούν αυτόματα οι 6 στήλες (`ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ`, `ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ`, `ΜΟΝ. ΜΕΤΡ.`, `ΠΟΣΟΤ.`, `ΤΙΜΗ ΜΟΝΑΔΑΣ`, `ΣΥΝΟΛΟ ΑΞΙΑΣ`).")
+    st.info("💡 **Tip για καλύτερα αποτελέσματα:** Τα αρχεία από κανονικό σκάνερ/εκτυπωτή ή από εφαρμογές σκαναρίσματος κινητού (π.χ. Microsoft Lens, Adobe Scan) που εξάγουν PDF διαβάζονται με σχεδόν 100% ακρίβεια. Αντίθετα, απλές φωτογραφίες από κάμερα κινητού ενδέχεται να έχουν σκιές, γωνίες και θολούρα που δυσκολεύουν το OCR.")
     
     uploaded_doc = st.file_uploader("Ανεβάστε αρχείο (JPG, PNG, WEBP, PDF)", type=["jpg", "jpeg", "png", "webp", "pdf"], key="doc_uploader")
     
@@ -79,20 +80,22 @@ with tabs[1]:
                             pix = page.get_pixmap(dpi=300)
                             img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.height, pix.width, 3))
                             gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-                            resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                            blur = cv2.GaussianBlur(resized, (3, 3), 0)
+                            if gray.shape[1] < 1500:
+                                gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+                            blur = cv2.GaussianBlur(gray, (3, 3), 0)
                             _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                            text = ps.image_to_string(thresh, lang='ell', config='--psm 6')
+                            text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
                     else:
                         # Επεξεργασία εικόνας (JPG/PNG/WEBP με PIL)
                         uploaded_doc.seek(0)
                         img_pil = Image.open(uploaded_doc).convert("RGB")
                         img_np = np.array(img_pil)
                         gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-                        resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                        blur = cv2.GaussianBlur(resized, (3, 3), 0)
+                        if gray.shape[1] < 1500:
+                            gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+                        blur = cv2.GaussianBlur(gray, (3, 3), 0)
                         _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                        text = ps.image_to_string(thresh, lang='ell', config='--psm 6')
+                        text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
                     
                     df_out = dokimi_app.parse_to_timologia_df(text)
                     

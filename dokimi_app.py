@@ -20,12 +20,16 @@ def preprocess_and_ocr(image_path):
         raise FileNotFoundError(f"Το αρχείο {image_path} δεν βρέθηκε.")
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    blur = cv2.GaussianBlur(resized, (3, 3), 0)
+    
+    # Αποφυγή μεγέθυνσης αν η εικόνα είναι ήδη υψηλής ανάλυσης
+    if gray.shape[1] < 1500:
+        gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+        
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
     _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # Εκτέλεση OCR με PSM 6 (Single uniform block of text)
-    text = ps.image_to_string(thresh, lang='ell', config='--psm 6')
+    # Εκτέλεση OCR με PSM 4 (Columnar text)
+    text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
     return text
 
 def parse_to_timologia_df(ocr_text):

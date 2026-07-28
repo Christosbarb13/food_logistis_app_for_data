@@ -30,19 +30,12 @@ def preprocess_and_ocr(image_path):
 
 def parse_to_timologia_df(ocr_text):
     """
-    Αναλύει το κείμενο OCR και το μετατρέπει σε DataFrame με τη δομή 6 στηλών
-    του φύλλου 'timologia':
+    Αναλύει το κείμενο OCR με δυναμικό List Slicing και το μετατρέπει σε DataFrame 
+    με τις 6 στήλες:
     ['ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ', 'ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ', 'ΜΟΝ. ΜΕΤΡ.', 'ΠΟΣΟΤ.', 'ΤΙΜΗ ΜΟΝΑΔΑΣ', 'ΣΥΝΟΛΟ ΑΞΙΑΣ']
     """
-    lines = ocr_text.split('\n')
+    all_lines = ocr_text.split('\n')
     records = []
-
-    # Λέξεις κλειδιά για παράλειψη κεφαλίδων/υποσέλιδων
-    ignore_keywords = [
-        "ΑΡΙΘΜΟΣ", "ΠΑΡΑΣΤΑΤΙΚΟΥ", "ΠΑΡΛΑΣΤΑΤΙΚΟΥ", "ΧΟΡΗΓΗΣΑΤΕ", "ΧΟΕΗΓΗΣΑΤΕ",
-        "ΠΕΡΙΓΡΑΦΗ", "ΕΘΕΩΡΗΘΗ", "ΥΠΟΓΡΑΦΗ", "ΣΦΡΑΓΙΔΑ", "ΔΙΑΤΑΚΤΙΚΗ",
-        "ΠΩΛΗΣΕΩΝ", "ΗΜΕΡΟΜΗΝΙΑ", "ΙΜΕΓΟΜΙΝΗΙΑ", "ΩΡΑ", "ΣΕΛΙΔΑ"
-    ]
 
     def format_decimal(val_str):
         if val_str == '-':
@@ -57,19 +50,37 @@ def parse_to_timologia_df(ocr_text):
         except ValueError:
             return val_clean
 
-    for line in lines:
+    # === 1. ΔΥΝΑΜΙΚΟΣ ΕΝΤΟΠΙΣΜΟΣ ΑΡΧΗΣ ΠΙΝΑΚΑ (Header Detection) ===
+    header_keywords = ["ΠΕΡΙΓΡΑΦΗ", "ΚΩΔΙΚΟΣ", "ΠΟΣΟΤ", "ΕΜΠΟΡΕΥΜΑΤΟΣ", "ΧΟΡΗΓΗΣΑΤΕ"]
+    start_idx = 0
+    for i, line in enumerate(all_lines):
+        line_upper = line.upper()
+        if any(keyword in line_upper for keyword in header_keywords):
+            start_idx = i + 1  # Ο πίνακας ξεκινάει αμέσως μετά την επικεφαλίδα
+            break
+
+    # === 2. ΔΥΝΑΜΙΚΟΣ ΕΝΤΟΠΙΣΜΟΣ ΤΕΛΟΥΣ ΠΙΝΑΚΑ (Footer Detection) ===
+    footer_keywords = ["ΣΥΝΟΛΟ", "ΦΠΑ", "ΕΘΕΩΡΗΘΗ", "ΥΠΟΓΡΑΦΗ", "ΣΦΡΑΓΙΔΑ", "ΠΛΗΡΩΤΕΟ", "ΓΕΝΙΚΟ"]
+    end_idx = len(all_lines)
+    for i in range(start_idx, len(all_lines)):
+        line_upper = all_lines[i].upper()
+        if any(keyword in line_upper for keyword in footer_keywords):
+            end_idx = i  # Ο πίνακας τελειώνει πριν από το άθροισμα/υπογραφή
+            break
+
+    # === 3. LIST SLICING: Απομόνωση ΜΟΝΟ των γραμμών του πίνακα ===
+    table_lines = all_lines[start_idx:end_idx]
+
+    # === 4. ΕΠΕΞΕΡΓΑΣΙΑ ΚΑΘΕ ΓΡΑΜΜΗΣ ΤΟΥ ΠΙΝΑΚΑ ===
+    for line in table_lines:
         line_str = line.strip()
         if not line_str:
             continue
 
-        # 1. Καθαρισμός θορύβου χαρακτήρων
+        # Καθαρισμός θορύβου χαρακτήρων
         line_clean = re.sub(r'[\[\]\{\}\|”"«»\~]', '', line_str)
 
-        # 2. Έλεγχος αν είναι γραμμή επικεφαλίδας ή υπογραφής
-        if any(keyword in line_clean.upper() for keyword in ignore_keywords):
-            continue
-
-        # 3. Εξαγωγή Κωδικού Είδους (π.χ. 228. 0016 -> 2280016, 55.001 -> 55001)
+        # Εξαγωγή Κωδικού Είδους (αν υπάρχει στο ξεκίνημα)
         code_match = re.match(r'^([0-9]{2,4}[\.,\s]+[0-9]{3,6}|[0-9]{5,6})', line_clean)
         if code_match:
             raw_code = code_match.group(0)
@@ -78,7 +89,7 @@ def parse_to_timologia_df(ocr_text):
         else:
             code = '-'
 
-        # 4. Εξαγωγή Μονάδας Μέτρησης (τεμά, Κιλά, Κιβώ)
+        # Εξαγωγή Μονάδας Μέτρησης (τεμά, Κιλά, Κιβώ)
         u_match = re.search(r'\b(τεμά|κιλά|κιβώ|κτν|τεμ|κιλ|kg|gr)\b', line_clean, re.IGNORECASE)
         if u_match:
             unit_str = u_match.group(0)
@@ -94,7 +105,7 @@ def parse_to_timologia_df(ocr_text):
         else:
             unit = 'τεμά'
 
-        # 5. Εντοπισμός αριθμών για Ποσότητα, Τιμή Μονάδας, Σύνολο Αξίας
+        # Εντοπισμός αριθμών για Ποσότητα, Τιμή Μονάδας, Σύνολο Αξίας
         clean_nums = re.findall(r'\b\d+[\.,]\d+\b|\b\d+\b', line_clean)
 
         if len(clean_nums) >= 3:
@@ -116,7 +127,7 @@ def parse_to_timologia_df(ocr_text):
             posot, timi_mon, synolo = '-', '-', '-'
             nums_to_remove = []
 
-        # 6. Εξαγωγή Περιγραφής Εμπορεύματος
+        # Εξαγωγή Περιγραφής Εμπορεύματος
         desc = line_clean
         if u_match:
             desc = desc.replace(u_match.group(0), '')
@@ -126,7 +137,7 @@ def parse_to_timologia_df(ocr_text):
         desc = re.sub(r'[^a-zA-Zα-ωΑ-Ω0-9\s\.\-\/\(\)]', '', desc)
         desc = re.sub(r'\s+', ' ', desc).strip()
 
-        # Προσθήκη εγγραφής αν περιέχει έγκυρη περιγραφή
+        # Προσθήκη εγγραφής αν περιέχει έγκυρη περιγραφή και τουλάχιστον μία τιμή
         if len(desc) > 2 and (synolo != '-' or timi_mon != '-'):
             records.append({
                 'ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ': code,
@@ -137,7 +148,6 @@ def parse_to_timologia_df(ocr_text):
                 'ΣΥΝΟΛΟ ΑΞΙΑΣ': synolo
             })
 
-    # Μετατροπή σε DataFrame με τις 6 ακριβείς στήλες του 'timologia'
     columns = ['ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ', 'ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ', 'ΜΟΝ. ΜΕΤΡ.', 'ΠΟΣΟΤ.', 'ΤΙΜΗ ΜΟΝΑΔΑΣ', 'ΣΥΝΟΛΟ ΑΞΙΑΣ']
     df = pd.DataFrame(records, columns=columns)
     return df

@@ -68,6 +68,13 @@ def parse_to_timologia_df(ocr_text):
             end_idx = i  # Ο πίνακας τελειώνει πριν από το άθροισμα/υπογραφή
             break
 
+    # Λέξεις κλειδιά επικεφαλίδων στοιχείων πελάτη/αποστολής που πρέπει να παραλείπονται
+    customer_info_keywords = [
+        "ΑΦΜ", "ΤΗΛΕΦΩΝΟ", "ΔΟΥ", "Δ.Ο.Υ", "ΔΙΕΥΘΥΝΣΗ", "ΕΠΑΓΓΕΛΜΑ", "ΓΕΜΗ",
+        "ΠΑΡΑΣΤΑΤΙΚΟΥ", "ΗΜΕΡΟΜΗΝΙΑ", "ΑΠΟΣΤΟΛΗΣ", "ΦΟΡΤΩΣΗΣ", "ΠΡΟΟΡΙΣΜΟΥ",
+        "ΠΛΗΡΩΜΗΣ", "ΕΠΩΝΥΜΙΑ", "ΣΕΙΡΑ", "ΤΟΠΟΣ", "ΤΡΟΠΟΣ"
+    ]
+
     # === 3. LIST SLICING: Απομόνωση ΜΟΝΟ των γραμμών του πίνακα ===
     table_lines = all_lines[start_idx:end_idx]
 
@@ -75,6 +82,11 @@ def parse_to_timologia_df(ocr_text):
     for line in table_lines:
         line_str = line.strip()
         if not line_str:
+            continue
+
+        line_upper = line_str.upper()
+        # Παράλειψη γραμμών που περιέχουν στοιχεία επικεφαλίδας παραστατικού/πελάτη
+        if any(k in line_upper for k in customer_info_keywords):
             continue
 
         # Καθαρισμός θορύβου χαρακτήρων
@@ -89,8 +101,8 @@ def parse_to_timologia_df(ocr_text):
         else:
             code = '-'
 
-        # Εξαγωγή Μονάδας Μέτρησης (τεμά, Κιλά, Κιβώ)
-        u_match = re.search(r'\b(τεμά|κιλά|κιβώ|κτν|τεμ|κιλ|kg|gr)\b', line_clean, re.IGNORECASE)
+        # Εξαγωγή Μονάδας Μέτρησης (τεμά, τεμαχ, Κιλά, Κιβώ)
+        u_match = re.search(r'\b(τεμά|τεμαχ|τεμ|κιλά|κιβώ|κτν|κιλ|kg|gr)\b', line_clean, re.IGNORECASE)
         if u_match:
             unit_str = u_match.group(0)
             u_lower = unit_str.lower()

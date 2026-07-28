@@ -34,10 +34,10 @@ with tabs[0]:
 
 # === TAB 2: OCR & PDF Παραστατικών ===
 with tabs[1]:
-    st.header("Αναγνώριση Παραστατικού (JPG, PNG, PDF)")
-    st.write("Ανεβάστε μια εικόνα (JPG/PNG) ή αρχείο **PDF** παραστατικού για να εξαχθούν αυτόματα οι 6 στήλες (`ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ`, `ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ`, `ΜΟΝ. ΜΕΤΡ.`, `ΠΟΣΟΤ.`, `ΤΙΜΗ ΜΟΝΑΔΑΣ`, `ΣΥΝΟΛΟ ΑΞΙΑΣ`).")
+    st.header("Αναγνώριση Παραστατικού (JPG, PNG, WEBP, PDF)")
+    st.write("Ανεβάστε μια εικόνα (JPG/PNG/WEBP) ή αρχείο **PDF** παραστατικού για να εξαχθούν αυτόματα οι 6 στήλες (`ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ`, `ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ`, `ΜΟΝ. ΜΕΤΡ.`, `ΠΟΣΟΤ.`, `ΤΙΜΗ ΜΟΝΑΔΑΣ`, `ΣΥΝΟΛΟ ΑΞΙΑΣ`).")
     
-    uploaded_doc = st.file_uploader("Ανεβάστε αρχείο (JPG, PNG, PDF)", type=["jpg", "jpeg", "png", "pdf"], key="doc_uploader")
+    uploaded_doc = st.file_uploader("Ανεβάστε αρχείο (JPG, PNG, WEBP, PDF)", type=["jpg", "jpeg", "png", "webp", "pdf"], key="doc_uploader")
     
     if uploaded_doc is not None:
         col1, col2 = st.columns([1, 2])
@@ -84,10 +84,11 @@ with tabs[1]:
                             _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                             text = ps.image_to_string(thresh, lang='ell', config='--psm 6')
                     else:
-                        # Επεξεργασία εικόνας (JPG/PNG)
-                        image_bytes = np.asarray(bytearray(uploaded_doc.read()), dtype=np.uint8)
-                        img = cv2.imdecode(image_bytes, cv2.IMREAD_COLOR)
-                        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        # Επεξεργασία εικόνας (JPG/PNG/WEBP με PIL)
+                        uploaded_doc.seek(0)
+                        img_pil = Image.open(uploaded_doc).convert("RGB")
+                        img_np = np.array(img_pil)
+                        gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
                         resized = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
                         blur = cv2.GaussianBlur(resized, (3, 3), 0)
                         _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)

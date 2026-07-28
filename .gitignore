@@ -14,5 +14,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Large / local data files (optional)
-# *.xlsx
+# Confidential / Local image & Excel data files
+*.xlsx
+*.xls
+*.jpg
+*.png
+*.jpeg

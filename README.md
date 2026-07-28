@@ -1,119 +1,112 @@
-# 📊 Εφαρμογή Μισθοτροφοδοσίας & OCR Αναγνώρισης Τιμολογίων (Open Source)
+# Automated Payroll & Invoice Processing System (OCR & PDF)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Μια ανοιχτού κώδικα (**Open Source**) εφαρμογή σε **Python** για την επεξεργασία αρχείων μισθοδοσίας Excel, καθώς και την αυτοματοποιημένη αναγνώριση κειμένου/δεδομένων από εικόνες παραστατικών και **τιμολογίων** με τη χρήση **Computer Vision (OpenCV)** και **OCR (Tesseract)**.
+An open-source Python application engineered for automating payroll data visualization and processing unstructured document images/PDFs into structured tabular data schemas. The system combines Computer Vision (OpenCV), Optical Character Recognition (Tesseract OCR), Direct PDF Stream Parsing (PyMuPDF), and Regular Expressions (Regex) within a Streamlit Web Interface.
 
 ---
 
-## 🌟 Κύρια Χαρακτηριστικά (Features)
+## Technical Overview & System Architecture
 
-* **🖥️ Web Interface (Streamlit Dashboard):** Διαδραστικό περιβάλλον χρήστη (`app_webb.py`) με 2 κύριες καρτέλες:
-  * **📁 Επεξεργασία Excel:** Φόρτωση, επιλογή φύλλων (sheets) και προβολή δεδομένων μισθοδοσίας σε πραγματικό χρόνο.
-  * **📷 Αναγνώριση Παραστατικών (timologia):** Ανέβασμα εικόνας (JPG/PNG), αυτόματος καθαρισμός, αναγνώριση κειμένου και εξαγωγή σε δομημένο πίνακα 6 στηλών.
-* **🖼️ Επεξεργασία Εικόνας (OpenCV Pipeline):** 
-  * Μετατροπή σε Grayscale.
-  * Διπλασιασμός ανάλυσης (2x Resize) για βελτίωση αναγνωρισιμότητας μικρών γραμμάτων.
-  * Αφαίρεση θορύβου με Gaussian Blur.
-  * Διφασική Κατωφλιοποίηση (Otsu Thresholding) για απόλυτο διαχωρισμό κειμένου και φόντου.
-* **🧠 Έξυπνη Εξαγωγή Δεδομένων (ETL Engine):**
-  * Φιλτράρισμα θορύβου επικεφαλίδων (Header Noise Suppression).
-  * Αναγνώριση 6ψήφιων Κωδικών Είδους με Regular Expressions (Regex).
-  * Αυτόματη αναγνώριση Μονάδων Μέτρησης (`τεμά`, `Κιλά`, `Κιβώ`).
-  * Μορφοποίηση δεκαδικών αριθμών σε αυστηρή μορφή 2 δεκαδικών ψηφίων (π.χ. `12.03`).
-* **📥 Εξαγωγή σε Excel:** Δυνατότητα λήψης των αναγνωρισμένων δεδομένων απευθείας σε αρχείο `.xlsx` στη μορφή `timologia`.
+The application is structured into a modular decoupled architecture:
+
+* **Presentation Layer (`app_webb.py`):** Interactive Streamlit web interface supporting multi-sheet Excel file analysis and multi-format document ingestion (JPG, PNG, PDF).
+* **Processing & Extraction Engine (`dokimi_app.py`):** 
+  * **Digital PDF Parsing:** Direct text stream extraction via PyMuPDF for digital documents.
+  * **Scanned Image/PDF Pipeline:** Image preprocessing via OpenCV (Binarization, Grayscale conversion, Gaussian Blur noise reduction, and Otsu's Thresholding) feeding into Tesseract OCR (Greek language model `--psm 6`).
+  * **ETL & Dynamic Slicing:** Dynamic table header/footer bounds detection using list slicing (`lines[start_idx:end_idx]`) to isolate item rows, followed by regex pattern matching for product codes, descriptions, units of measure, and decimal-formatted pricing.
+* **Storage Layer:** Excel binary export (`.xlsx`) adhering to the standardized `timologia` 6-column schema.
 
 ---
 
-## 📋 Δομή 6 Στηλών (Schema 'timologia')
+## Data Schema (6-Column Target Layout)
 
-Τα εξαγόμενα δεδομένα από κάθε τιμολόγιο μορφοποιούνται στους παρακάτω 6 άξονες:
-1. `ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ`
-2. `ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ`
-3. `ΜΟΝ. ΜΕΤΡ.`
-4. `ΠΟΣΟΤ.`
-5. `ΤΙΜΗ ΜΟΝΑΔΑΣ`
-6. `ΣΥΝΟΛΟ ΑΞΙΑΣ`
+All extracted data rows are normalized into the following target schema:
+
+| Column Index | Field Name | Description |
+| :--- | :--- | :--- |
+| 1 | `ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ` | 6-digit product code (or `-` if unassigned) |
+| 2 | `ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ` | Normalized product description string |
+| 3 | `ΜΟΝ. ΜΕΤΡ.` | Unit of measure (`τεμά`, `Κιλά`, `Κιβώ`) |
+| 4 | `ΠΟΣΟΤ.` | Quantities formatted to 2 decimal places |
+| 5 | `ΤΙΜΗ ΜΟΝΑΔΑΣ` | Unit price formatted to 2 decimal places |
+| 6 | `ΣΥΝΟΛΟ ΑΞΙΑΣ` | Total row value formatted to 2 decimal places |
 
 ---
 
-## 📁 Δομή Έργου (Project Structure)
+## Repository Structure
 
 ```text
 efarmogi_mistotrofodosia/
-├── app_webb.py           # Η κύρια Web Εφαρμογή σε Streamlit (Frontend & UI)
-├── dokimi_app.py         # Ο "Κινητήρας" OCR & Computer Vision (Backend Engine)
-├── app.py                # Δοκιμαστικό CLI script για ανάγνωση Excel
-├── run_app.bat           # 1-Click Εκτελέσιμο Αρχείο Εκκίνησης για Windows
-├── dokimi.jpg            # Δείγμα παραστατικού για δοκιμές OCR
-├── requirements.txt      # Απαιτούμενες βιβλιοθήκες Python
-├── LICENSE               # Άδεια χρήσης Open Source (MIT License)
-├── .gitignore            # Αρχεία που εξαιρούνται από το Git
-└── README.md             # Τεκμηρίωση έργου
+├── app_webb.py           # Streamlit Web Application Interface
+├── dokimi_app.py         # Document Ingestion, Computer Vision & ETL Engine
+├── app.py                # Command-Line Excel Inspection Script
+├── run_app.bat           # Windows Batch Launcher Script
+├── requirements.txt      # Python Package Dependencies Manifest
+├── LICENSE               # MIT Open Source License
+├── .gitignore            # Git Ingestion Ignore Specification
+└── README.md             # Technical Documentation
 ```
 
 ---
 
-## 🛠️ Προαπαιτούμενα & Εγκατάσταση
+## Prerequisites & Local Deployment
 
-### 1. Εγκατάσταση Tesseract OCR Engine
-Για τη λειτουργία του OCR απαιτείται η εγκατάσταση του Tesseract στο σύστημά σας:
-* **Windows:** Κατεβάστε τον installer από το [Tesseract at UB Mannheim](https://github.com/UB-Mannheim/tesseract/wiki) και βεβαιωθείτε ότι περιλαμβάνεται το ελληνικό πακέτο γλωσσών (`ell`).
-* Προεπιλεγμένη διαδρομή Windows: `C:\Program Files\Tesseract-OCR\tesseract.exe`
+### 1. External Dependencies
+* **Python:** 3.9+
+* **Tesseract OCR:** Install Tesseract OCR with Greek language support (`ell`).
+  * Default Windows binary location: `C:\Program Files\Tesseract-OCR\tesseract.exe`
 
-### 2. Εγκατάσταση Εξαρτήσεων Python
-Εκτελέστε στο τερματικό:
+### 2. Dependency Installation
+Install required Python packages via pip:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-## 💻 Πώς να Εκτελέσετε την Εφαρμογή Τοπικά
+## Execution Guide
 
-### ⚡ Τρόπος 1: 1-Click Εκκίνηση (Windows Batch File)
-Διπλό κλικ στο αρχείο **`run_app.bat`** για να ξεκινήσει αυτόματα η εφαρμογή στον browser σας!
+### Method 1: Windows Batch File (Single Click)
+Double-click the `run_app.bat` script to initialize the Python environment and spawn the Streamlit web server on `http://localhost:8501`.
 
-### 💻 Τρόπος 2: Μέσω Τερματικού
-* **Web Εφαρμογή (Streamlit):**
-  ```bash
-  streamlit run app_webb.py
-  ```
-* **OCR Engine (CLI / Testing):**
-  ```bash
-  python dokimi_app.py
-  ```
+### Method 2: Command Line Interface
+Execute the Streamlit application module directly:
+
+```bash
+streamlit run app_webb.py
+```
+
+To run the document parsing engine independently via CLI:
+
+```bash
+python dokimi_app.py
+```
 
 ---
 
-## 📦 Δημιουργία Αυτόνομου Εκτελέσιμου Αρχείου (.EXE)
+## Standalone Binary Compilation (.EXE)
 
-Αν θέλετε να δημιουργήσετε ένα αυτόνομο αρχείο `.exe` με το PyInstaller:
+To compile the application into a standalone Windows executable directory using PyInstaller:
 
-1. Εγκαταστήστε το PyInstaller:
+1. Install PyInstaller:
    ```bash
    pip install pyinstaller
    ```
-2. Δημιουργήστε το εκτελέσιμο:
+2. Compile binary:
    ```bash
    pyinstaller --noconfirm --onedir --windowed --add-data "dokimi_app.py;." app_webb.py
    ```
 
 ---
 
-## 🔓 Προσαρμογή & Open Source
+## Security & Data Privacy Statement
 
-Το έργο διατίθεται υπό την άδεια **MIT License**. Οποιοσδήποτε μπορεί να κάνει `fork` ή `clone` το αποθετήριο, να τροποποιήσει τους κανόνες Regex στο `dokimi_app.py` ή να προσαρμόσει τις στήλες του πίνακα στις δικές του εταιρικές ανάγκες.
+The entire processing pipeline executes strictly on local system hardware (`localhost`). No document streams, images, or payroll data are transmitted to external third-party cloud services.
 
 ---
 
-## 🚀 Οδηγίες Ανεβάσματος στο GitHub
+## License
 
-```bash
-git init
-git add .
-git commit -m "Initial commit: Open Source Payroll & Invoice OCR App"
-git branch -M main
-git remote add origin https://github.com/USERNAME/YOUR-REPO-NAME.git
-git push -u origin main
-```
+Distributed under the MIT License. See `LICENSE` for more information.

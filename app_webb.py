@@ -12,10 +12,10 @@ import fitz  # PyMuPDF για PDF επεξεργασία
 ps.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Ρύθμιση τίτλου και σελίδας
-st.set_page_config(page_title="Εφαρμογή Μισθοτροφοδοσίας & OCR", page_icon="📊", layout="wide")
-st.title("📊 Εφαρμογή Μισθοτροφοδοσίας & Αναγνώριση Παραστατικών (OCR & PDF)")
+st.set_page_config(page_title="Εφαρμογή Μισθοτροφοδοσίας & OCR", layout="wide")
+st.title("Εφαρμογή Μισθοτροφοδοσίας & Αναγνώριση Παραστατικών (OCR & PDF)")
 
-tabs = st.tabs(["📁 Επεξεργασία Excel", "📷 Αναγνώριση Παραστατικών (Εικόνες & PDF)"])
+tabs = st.tabs(["Επεξεργασία Excel", "Αναγνώριση Παραστατικών (Εικόνες & PDF)"])
 
 # === TAB 1: Επεξεργασία Excel ===
 with tabs[0]:
@@ -45,7 +45,7 @@ with tabs[1]:
         
         with col1:
             if is_pdf:
-                st.info("📄 Επιλέχθηκε αρχείο PDF. Γίνεται προεπισκόπηση της 1ης σελίδας...")
+                st.info("Επιλέχθηκε αρχείο PDF. Γίνεται προεπισκόπηση της 1ης σελίδας...")
                 pdf_bytes = uploaded_doc.read()
                 doc = fitz.open(stream=pdf_bytes, filetype="pdf")
                 page = doc.load_page(0)
@@ -56,7 +56,7 @@ with tabs[1]:
                 st.image(uploaded_doc, caption="Προεπισκόπηση Εικόνας", use_container_width=True)
             
         with col2:
-            if st.button("🚀 Εκτέλεση OCR & Ανάλυσης"):
+            if st.button("Εκτέλεση OCR & Ανάλυσης"):
                 with st.spinner("Γίνεται επεξεργασία αρχείου και αναγνώριση κειμένου..."):
                     text = ""
                     if is_pdf:
@@ -88,7 +88,7 @@ with tabs[1]:
                     
                     df_out = dokimi_app.parse_to_timologia_df(text)
                     
-                    st.subheader("📋 Εξαγόμενα Δεδομένα (Μορφή 'timologia')")
+                    st.subheader("Εξαγόμενα Δεδομένα (Μορφή 'timologia')")
                     st.dataframe(df_out, use_container_width=True)
                     
                     # Προετοιμασία λήψης Excel
@@ -97,7 +97,7 @@ with tabs[1]:
                         df_out.to_excel(writer, sheet_name='timologia', index=False)
                     
                     st.download_button(
-                        label="📥 Λήψη σε Αρχείο Excel",
+                        label="Λήψη σε Αρχείο Excel",
                         data=buffer.getvalue(),
                         file_name="timologia_extracted.xlsx",
                         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

@@ -5,8 +5,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 #δημιουργώ το αρχείο excel με τα δεδομένα που θα χρησιμοποιήσω για την εφαρμογή και δινω την δυνατόητα να επιλέξει ο χρήστης ποιο φύλλο θέλει να χρησιμοποιήσει και να δει τα δεδομένα του επιλεγμένου φύλλου   
 try:    
-    excel_file="C:\\Users\\cris-\\OneDrive\\Desktop\\python\\efarmogi_mistotrofodosia\\ΙΟΥΝΙΟΣ (1).xlsx"
-    xl=pd.ExcelFile(excel_file)
+    excel_file = "ΙΟΥΝΙΟΣ (1).xlsx"
+    xl = pd.ExcelFile(excel_file)
     print("Το αρχείο excel φορτώθηκε επιτυχώς")
 
     print("Τα φυλλά που περιέχει το αρχείο excel είναι τα εξής:")

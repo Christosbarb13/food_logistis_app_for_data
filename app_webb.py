@@ -15,6 +15,22 @@ ps.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 st.set_page_config(page_title="Εφαρμογή Μισθοτροφοδοσίας & OCR", layout="wide")
 st.title("Εφαρμογή Μισθοτροφοδοσίας & Αναγνώριση Παραστατικών (OCR & PDF)")
 
+# --- Ρυθμίσεις Sidebar ---
+with st.sidebar:
+    st.header("⚙️ Ρυθμίσεις Εξαγωγής")
+    use_ai = st.toggle("Χρήση Τεχνητής Νοημοσύνης (Gemini AI)", value=False)
+    
+    if use_ai:
+        api_key = st.text_input("Google Gemini API Key", type="password", help="Εισάγετε το API Key σας από το Google AI Studio.")
+        st.markdown("[Δημιουργία δωρεάν API Key](https://aistudio.google.com/app/apikey)")
+        custom_prompt = st.text_area(
+            "Οδηγίες Εξαγωγής (Προδιαγραφές)",
+            value="Εξήγαγε τις εξής στήλες: 'ΚΩΔΙΚΟΣ ΕΙΔΟΥΣ', 'ΠΕΡΙΓΡΑΦΗ ΕΜΠΟΡΕΥΜΑΤΟΣ', 'ΜΟΝ. ΜΕΤΡ.', 'ΠΟΣΟΤ.', 'ΤΙΜΗ ΜΟΝΑΔΑΣ', 'ΣΥΝΟΛΟ ΑΞΙΑΣ'."
+        )
+    else:
+        api_key = ""
+        custom_prompt = ""
+
 tabs = st.tabs(["Επεξεργασία Excel", "Αναγνώριση Παραστατικών (Εικόνες & PDF)"])
 
 # === TAB 1: Επεξεργασία Excel ===
@@ -101,7 +117,17 @@ with tabs[1]:
                         _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
                         text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
                     
-                    df_out = dokimi_app.parse_to_timologia_df(text)
+                    if use_ai:
+                        if not api_key:
+                            st.error("Παρακαλώ εισάγετε ένα έγκυρο API Key στις Ρυθμίσεις (Sidebar) αριστερά για να χρησιμοποιήσετε το AI.")
+                            st.stop()
+                        try:
+                            df_out = dokimi_app.parse_with_llm(text, api_key, custom_prompt)
+                        except Exception as e:
+                            st.error(f"Σφάλμα κατά την επικοινωνία με το AI: {e}")
+                            st.stop()
+                    else:
+                        df_out = dokimi_app.parse_to_timologia_df(text)
                     
                     st.subheader("Εξαγόμενα Δεδομένα (Μορφή 'timologia')")
                     st.dataframe(df_out, use_container_width=True)

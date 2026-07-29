@@ -3,6 +3,8 @@ import re
 import cv2
 import pytesseract as ps
 import pandas as pd
+import json
+import google.generativeai as genai
 
 # 1. Ρύθμιση εκτύπωσης Ελληνικών στην κονσόλα
 sys.stdout.reconfigure(encoding='utf-8')
@@ -199,3 +201,52 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"❌ Προέκυψε σφάλμα κατά την επεξεργασία: {e}")
 
+def parse_with_llm(ocr_text, api_key, custom_prompt):
+    """
+    Χρησιμοποιεί το Google Gemini API (gemini-1.5-flash) για να δομήσει το OCR κείμενο.
+    Επιστρέφει DataFrame έτοιμο για εμφάνιση και εξαγωγή.
+    """
+    if not api_key:
+        raise ValueError("Δεν βρέθηκε API Key.")
+        
+    genai.configure(api_key=api_key)
+    
+    # Χρήση του γρήγορου μοντέλου
+    model = genai.GenerativeModel('gemini-1.5-flash')
+    
+    full_prompt = f"""
+    Είσαι ένας ειδικός βοηθός ανάλυσης δεδομένων και τιμολογίων. Σου δίνεται το παρακάτω αδόμητο κείμενο που εξήχθη από ένα σύστημα OCR.
+    
+    ΟΔΗΓΙΕΣ ΧΡΗΣΤΗ / ΠΡΟΔΙΑΓΡΑΦΕΣ:
+    {custom_prompt}
+    
+    ΣΗΜΑΝΤΙΚΟΣ ΚΑΝΟΝΑΣ ΜΟΡΦΟΠΟΙΗΣΗΣ:
+    Η απάντησή σου ΠΡΕΠΕΙ να είναι ΑΥΣΤΗΡΑ ένα έγκυρο JSON Array (λίστα). Δεν πρέπει να περιέχει καμία άλλη επεξήγηση, Markdown blocks (όπως ```json) ή εισαγωγικό κείμενο. Μόνο το raw JSON array.
+    Το JSON array θα περιέχει dictionaries. Τα κλειδιά (keys) των dictionaries πρέπει να ταιριάζουν ακριβώς με τις στήλες που περιγράφονται στις οδηγίες. Αν κάποιο δεδομένο λείπει, βάλε "-".
+
+    ΚΕΙΜΕΝΟ OCR:
+    {ocr_text}
+    """
+    
+    response = model.generate_content(full_prompt)
+    
+    try:
+        # Καθαρισμός τυχόν markdown formatting από το response
+        response_text = response.text.strip()
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+            
+        data = json.loads(response_text.strip())
+        df = pd.DataFrame(data)
+        
+        # Αν η απάντηση δεν είναι σωστή λίστα
+        if df.empty and isinstance(data, dict):
+            df = pd.DataFrame([data])
+            
+        return df
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Το μοντέλο δεν επέστρεψε έγκυρο JSON. Απάντηση:\n{response.text}") from e

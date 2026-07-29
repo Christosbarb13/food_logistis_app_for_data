@@ -8,6 +8,10 @@ import pytesseract as ps
 import dokimi_app
 import fitz  # PyMuPDF για PDF επεξεργασία
 import re
+import importlib
+
+# Αναγκαστική επαναφόρτωση του dokimi_app για να παίρνει πάντα τις τελευταίες αλλαγές
+importlib.reload(dokimi_app)
 # Ρύθμιση Tesseract CMD
 ps.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 

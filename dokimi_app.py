@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
 def parse_with_llm(ocr_text, api_key, custom_prompt):
     """
-    Χρησιμοποιεί το σύγχρονο Google Gemini API (gemini-1.5-flash) για να δομήσει το OCR κείμενο.
+    Χρησιμοποιεί το σύγχρονο Google Gemini API (gemini-flash-latest) για να δομήσει το OCR κείμενο.
     Επιστρέφει DataFrame έτοιμο για εμφάνιση και εξαγωγή.
     """
     if not api_key:
@@ -226,7 +226,7 @@ def parse_with_llm(ocr_text, api_key, custom_prompt):
     """
     
     response = client.models.generate_content(
-        model='gemini-1.5-flash',
+        model='gemini-flash-latest',
         contents=full_prompt
     )
     

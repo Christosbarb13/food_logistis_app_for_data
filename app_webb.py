@@ -76,15 +76,19 @@ with tabs[1]:
                             text = extracted_text
                         else:
                             # 3. Αν είναι σκαναρισμένο PDF, μετατροπή σε εικόνα υψηλής ανάλυσης & πλήρες OpenCV Pipeline
-                            page = doc.load_page(0)
-                            pix = page.get_pixmap(dpi=300)
-                            img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.height, pix.width, 3))
-                            gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-                            if gray.shape[1] < 1500:
-                                gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-                            blur = cv2.GaussianBlur(gray, (3, 3), 0)
-                            _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                            text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
+                            text_pages = []
+                            for page_num in range(len(doc)):
+                                page = doc.load_page(page_num)
+                                pix = page.get_pixmap(dpi=300)
+                                img_np = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.height, pix.width, 3))
+                                gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+                                if gray.shape[1] < 1500:
+                                    gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+                                blur = cv2.GaussianBlur(gray, (3, 3), 0)
+                                _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                                page_text = ps.image_to_string(thresh, lang='ell', config='--psm 4')
+                                text_pages.append(page_text)
+                            text = "\n".join(text_pages)
                     else:
                         # Επεξεργασία εικόνας (JPG/PNG/WEBP με PIL)
                         uploaded_doc.seek(0)

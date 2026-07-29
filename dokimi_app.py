@@ -64,10 +64,15 @@ def parse_to_timologia_df(ocr_text):
             break
 
     # === 2. ΔΥΝΑΜΙΚΟΣ ΕΝΤΟΠΙΣΜΟΣ ΤΕΛΟΥΣ ΠΙΝΑΚΑ (Footer Detection) ===
-    footer_keywords = ["ΣΥΝΟΛΟ", "ΦΠΑ", "ΕΘΕΩΡΗΘΗ", "ΥΠΟΓΡΑΦΗ", "ΣΦΡΑΓΙΔΑ", "ΠΛΗΡΩΤΕΟ", "ΓΕΝΙΚΟ"]
+    footer_keywords = ["ΣΥΝΟΛΟ", "ΦΠΑ", "ΕΘΕΩΡΗΘΗ", "ΥΠΟΓΡΑΦΗ", "ΣΦΡΑΓΙΔΑ", "ΠΛΗΡΩΤΕΟ", "ΓΕΝΙΚΟ", "ΕΙΣΠΡΑΧΘΗΚΕ", "ΠΑΡΑΛΑΜΒΑΝΩΝ"]
     end_idx = len(all_lines)
     for i in range(start_idx, len(all_lines)):
         line_upper = all_lines[i].upper()
+        
+        # Αποφυγή false positive αν η γραμμή περιέχει 'ΣΥΝΟΛΟ' αλλά είναι η επικεφαλίδα του πίνακα
+        if "ΣΥΝΟΛΟ ΑΞΙΑΣ" in line_upper or "ΤΙΜΗ ΜΟΝΑΔΑΣ" in line_upper:
+            continue
+            
         if any(keyword in line_upper for keyword in footer_keywords):
             end_idx = i  # Ο πίνακας τελειώνει πριν από το άθροισμα/υπογραφή
             break

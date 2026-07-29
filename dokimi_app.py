@@ -4,7 +4,7 @@ import cv2
 import pytesseract as ps
 import pandas as pd
 import json
-import google.generativeai as genai
+from google import genai
 
 # 1. Ρύθμιση εκτύπωσης Ελληνικών στην κονσόλα
 sys.stdout.reconfigure(encoding='utf-8')
@@ -203,16 +203,13 @@ if __name__ == '__main__':
 
 def parse_with_llm(ocr_text, api_key, custom_prompt):
     """
-    Χρησιμοποιεί το Google Gemini API (gemini-1.5-flash) για να δομήσει το OCR κείμενο.
+    Χρησιμοποιεί το σύγχρονο Google Gemini API (gemini-1.5-flash) για να δομήσει το OCR κείμενο.
     Επιστρέφει DataFrame έτοιμο για εμφάνιση και εξαγωγή.
     """
     if not api_key:
         raise ValueError("Δεν βρέθηκε API Key.")
         
-    genai.configure(api_key=api_key)
-    
-    # Χρήση του γρήγορου μοντέλου
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    client = genai.Client(api_key=api_key)
     
     full_prompt = f"""
     Είσαι ένας ειδικός βοηθός ανάλυσης δεδομένων και τιμολογίων. Σου δίνεται το παρακάτω αδόμητο κείμενο που εξήχθη από ένα σύστημα OCR.
@@ -228,7 +225,10 @@ def parse_with_llm(ocr_text, api_key, custom_prompt):
     {ocr_text}
     """
     
-    response = model.generate_content(full_prompt)
+    response = client.models.generate_content(
+        model='gemini-1.5-flash',
+        contents=full_prompt
+    )
     
     try:
         # Καθαρισμός τυχόν markdown formatting από το response
